@@ -1,4 +1,5 @@
 import threading
+from collections import UserList
 from pathlib import Path
 from typing import Any
 
@@ -104,6 +105,44 @@ class TestRenderPrompt:
 
         prompt = Prompt.from_function(fn)
         assert await prompt.render(None, Context()) == [UserMessage(t) for t in expected]
+
+    @pytest.mark.anyio
+    async def test_fn_returns_user_list_of_messages(self):
+        """SDK-defined: a `collections.UserList` (or any non-str `Sequence`) of messages is split into
+        one message per element, the same as a list or tuple."""
+        expected: list[Message] = [
+            UserMessage("Question"),
+            AssistantMessage("Answer"),
+        ]
+
+        def fn() -> UserList[Message]:
+            return UserList(expected)
+
+        prompt = Prompt.from_function(fn)
+        assert await prompt.render(None, Context()) == expected
+
+    @pytest.mark.anyio
+    async def test_async_fn_returns_user_list_of_messages(self):
+        expected: list[Message] = [
+            UserMessage("Question"),
+            AssistantMessage("Answer"),
+        ]
+
+        async def fn() -> UserList[Message]:
+            return UserList(expected)
+
+        prompt = Prompt.from_function(fn)
+        assert await prompt.render(None, Context()) == expected
+
+    @pytest.mark.anyio
+    async def test_fn_returns_empty_user_list(self):
+        """An empty sequence renders as no messages, not a single message dumping `"[]"`."""
+
+        def fn() -> UserList[Message]:
+            return UserList()
+
+        prompt = Prompt.from_function(fn)
+        assert await prompt.render(None, Context()) == []
 
     @pytest.mark.anyio
     async def test_fn_returns_resource_content(self):
