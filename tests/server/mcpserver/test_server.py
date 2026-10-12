@@ -1561,23 +1561,27 @@ class TestServerPrompts:
             )
 
     async def test_get_unknown_prompt(self):
-        """Test error when getting unknown prompt."""
+        """A prompt name that was never registered fails as INVALID_PARAMS, per the spec's error handling section."""
         mcp = MCPServer()
 
         async with Client(mcp, mode="legacy") as client:
-            with pytest.raises(MCPError, match="Unknown prompt"):
+            with pytest.raises(MCPError, match="Unknown prompt") as exc_info:
                 await client.get_prompt("unknown")
 
+        assert exc_info.value.error.code == INVALID_PARAMS
+
     async def test_get_prompt_missing_args(self):
-        """Test error when required arguments are missing."""
+        """A missing required argument fails as INVALID_PARAMS, per the spec's error handling section."""
         mcp = MCPServer()
 
         @mcp.prompt()
         def prompt_fn(name: str) -> str: ...  # pragma: no branch
 
         async with Client(mcp, mode="legacy") as client:
-            with pytest.raises(MCPError, match="Missing required arguments"):
+            with pytest.raises(MCPError, match="Missing required arguments") as exc_info:
                 await client.get_prompt("prompt_fn")
+
+        assert exc_info.value.error.code == INVALID_PARAMS
 
 
 async def test_resource_decorator_rfc6570_reserved_expansion():

@@ -4,6 +4,7 @@ from typing import Any
 
 import pytest
 from mcp_types import (
+    INVALID_PARAMS,
     AudioContent,
     ElicitRequest,
     ElicitRequestFormParams,
@@ -16,6 +17,7 @@ from mcp_types import (
 
 from mcp.server.mcpserver import AssistantMessage, Audio, Context, Image, MCPServer, Message, UserMessage
 from mcp.server.mcpserver.prompts.base import Prompt
+from mcp.shared.exceptions import MCPError
 
 
 class TestRenderPrompt:
@@ -51,12 +53,15 @@ class TestRenderPrompt:
 
     @pytest.mark.anyio
     async def test_fn_with_invalid_kwargs(self):
+        """A missing required argument is rejected as INVALID_PARAMS, per the spec's error handling section."""
+
         async def fn(name: str, age: int = 30) -> str:  # pragma: no cover
             return f"Hello, {name}! You're {age} years old."
 
         prompt = Prompt.from_function(fn)
-        with pytest.raises(ValueError):
+        with pytest.raises(MCPError) as exc_info:
             await prompt.render({"age": 40}, Context())
+        assert exc_info.value.code == INVALID_PARAMS
 
     @pytest.mark.anyio
     async def test_fn_returns_message(self):
