@@ -189,8 +189,8 @@ class Prompt(BaseModel):
             if isinstance(result, InputRequiredResult):
                 return result
 
-            # Validate messages
-            if not isinstance(result, list | tuple):
+            # Validate messages. str and bytes are Sequences too, but a single message, not one per element.
+            if isinstance(result, str | bytes) or not isinstance(result, Sequence):
                 result = [result]
 
             # Convert result to messages
